@@ -381,11 +381,28 @@ const PIN_KEY = 'santa-sofia-pin';
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlLjjYncKft8eXC82dmCId5a6BM-oh29O6mpoiF7e0MG6HhbBXwrAErponQ0s-t27Z/exec';
 
 // Armazenamento compartilhado via Google Planilhas (todo mundo vê os mesmos dados)
+// O Apps Script não consegue adicionar o cabeçalho de CORS nas respostas do GET,
+// então sites fora do domínio do Google (como o GitHub Pages) não conseguem LER
+// essa resposta via fetch normal — mesmo que a busca no servidor funcione.
+// JSONP contorna isso usando uma tag <script>, que não é bloqueada por CORS.
+function jsonpRequest_(url){
+  return new Promise((resolve)=>{
+    const cbName = 'ssJsonp_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let done = false;
+    function cleanup(){ delete window[cbName]; script.remove(); }
+    window[cbName] = (data)=>{ done = true; resolve(data); cleanup(); };
+    script.onerror = ()=>{ if(!done){ resolve(null); cleanup(); } };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    document.body.appendChild(script);
+    setTimeout(()=>{ if(!done){ resolve(null); cleanup(); } }, 8000);
+  });
+}
+
 const storage = {
   get: async (key)=>{
     try{
-      const res = await fetch(`${API_URL}?key=${encodeURIComponent(key)}&_=${Date.now()}`, {cache:'no-store'});
-      const data = await res.json();
+      const data = await jsonpRequest_(`${API_URL}?key=${encodeURIComponent(key)}&_=${Date.now()}`);
       return (data && data.value !== null && data.value !== undefined) ? {key, value: data.value} : null;
     }catch(e){ return null; }
   },
