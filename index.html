@@ -705,7 +705,7 @@ document.getElementById('tabBtnEditar').addEventListener('click', async ()=>{
     });
   } else {
     openPinModal('Entrar em modo de edição', 'Digite o PIN para acessar a aba de edição.', async (val)=>{
-      if(val !== pinRecord.value){
+      if(String(val) !== String(pinRecord.value)){
         document.getElementById('pinError').textContent = 'PIN incorreto.';
         document.getElementById('pinError').classList.add('show');
         return;
