@@ -384,7 +384,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzlLjjYncKft8eXC82dmCId
 const storage = {
   get: async (key)=>{
     try{
-      const res = await fetch(`${API_URL}?key=${encodeURIComponent(key)}`);
+      const res = await fetch(`${API_URL}?key=${encodeURIComponent(key)}&_=${Date.now()}`, {cache:'no-store'});
       const data = await res.json();
       return (data && data.value !== null && data.value !== undefined) ? {key, value: data.value} : null;
     }catch(e){ return null; }
@@ -795,6 +795,21 @@ document.getElementById('saveRecebimento').addEventListener('click', async ()=>{
 });
 
 loadState();
+
+// Atualiza os dados automaticamente, sem precisar dar F5
+async function refreshData(){
+  try{
+    const res = await storage.get(DATA_KEY);
+    if(res){
+      state = JSON.parse(res.value);
+      render();
+    }
+  }catch(e){ /* falha silenciosa, mantém os dados já carregados */ }
+}
+setInterval(refreshData, 20000); // a cada 20 segundos
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') refreshData();
+});
 </script>
 </body>
 </html>
